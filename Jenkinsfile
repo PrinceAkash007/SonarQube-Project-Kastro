@@ -10,7 +10,6 @@ pipeline{
         DOCKER_USERNAME = "akash2147"
         DOCKER_IMAGE = "$DOCKER_USERNAME/snap:${env.BUILD_NUMBER}"
     }
-
     stages {
 
         stage('Cleanup workspace'){
