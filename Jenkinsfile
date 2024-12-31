@@ -5,13 +5,11 @@ pipeline{
         maven "maven3"
         jdk "jdk17"
     }
-
     environment {
         SONAR_SCANNER = tool "sonar-scanner"
         DOCKER_USERNAME = "akash2147"
         DOCKER_IMAGE = "$DOCKER_USERNAME/snap:${env.BUILD_NUMBER}"
     }
-
 
     stages {
 
@@ -29,7 +27,7 @@ pipeline{
         stage('Maven compile') {
             steps {
                 script {
-                    sh "mvn compile"
+                    sh "mvn clean compile"
                 }
             }
         }
