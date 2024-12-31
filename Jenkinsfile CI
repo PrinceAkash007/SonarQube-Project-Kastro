@@ -56,8 +56,7 @@ pipeline{
         stage('Docker Image build') {
             steps{
                 script{
-                    sh "mkdir images"
-                    sh "echo $DOCKER_IMAGE > ./images/image-tag.txt"
+                    sh "echo $DOCKER_IMAGE > /var/lib/jenkins/images/image-tag.txt"
                     sh "docker build -t $DOCKER_IMAGE ."
                 }
             }
