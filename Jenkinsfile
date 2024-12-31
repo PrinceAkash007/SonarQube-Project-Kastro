@@ -1,90 +1,93 @@
-pipeline {
+pipeline{
     agent any
 
     tools {
-        maven 'maven3'
-        jdk 'jdk17'
-        // Remove the sonarQube line if it still causes issues
+        maven "maven3"
+        jdk "jdk17"
     }
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-        DOCKERHUB_USERNAME = 'kastrov'  // Set this directly to your Docker Hub username
-        DOCKER_IMAGE = "${DOCKERHUB_USERNAME}/spotify-app:latest"
+        SONAR_SCANNER = tool "sonar-scanner"
+        DOCKER_USERNAME = "akash2147"
+        DOCKER_IMAGE = "$DOCKER_USERNAME/snap:${env.BUILD_NUMBER}"
     }
 
+
     stages {
-        stage('Git Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/KastroVKiran/SonarQube-Project-Kastro.git'
+
+        stage('Cleanup workspace'){
+            steps{
+                cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+            }
+        }
+        stage('Checkout') {
+            steps{
+                git branch: 'main', credentialsId: 'github', url: 'https://github.com/PrinceAkash007/SonarQube-Project-Kastro.git'
             }
         }
 
-        stage('Compile') {
+        stage('Maven compile') {
             steps {
-                sh "mvn compile"
+                script {
+                    sh "mvn compile"
+                }
             }
         }
 
-        stage('Test') {
-            steps {
+        stage('Maven test') {
+            steps{
                 sh "mvn test"
             }
         }
 
-        stage('Sonar Analysis') {
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Kastro -Dsonar.projectKey=KastroKey -Dsonar.java.binaries=target"
+        stage('Sonar scanning'){
+            steps{
+                withSonarQubeEnv('sonar-scanner') {
+                    sh "$SONAR_SCANNER/bin/sonar-scanner -Dsonar.projectName=youtube -Dsonar.projectKey=youtube -Dsonar.java.binaries=target"
                 }
             }
         }
 
-        stage('Build') {
-            steps {
-                sh "mvn package"
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                script {
-                    // Building Docker Image
-                    sh "docker build -t $DOCKER_IMAGE ."
+        stage('Maven package'){
+            steps{
+                script{
+                    sh "mvn package"
                 }
             }
         }
 
-        stage('Docker Push to DockerHub') {
-            steps {
+        stage('Docker Image build') {
+            steps{
+                sh "docker build -t $DOCKER_IMAGE ."
+            }
+        }
+
+        stage('Image push to docker'){
+            steps{
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-                        echo "Docker Hub Username: ${DOCKERHUB_USERNAME}"  // Check the username
-                        echo "Docker Image: ${DOCKER_IMAGE}"  // Check the image
-                        sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
-                        sh "docker push $DOCKER_IMAGE"
+                    withCredentials([usernamePassword(credentialsId: 'docker', passwordVariable: 'DOCKERHUB_PASSWORD', usernameVariable: 'DOCKERHUB_USERNAME')]) {
+                        
+                        sh """
+                            echo "Docker username: $DOCKERHUB_USERNAME"
+                            echo "Docker image: $DOCKER_IMAGE"
+                            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+                            docker push $DOCKER_IMAGE
+
+                        """
                     }
                 }
             }
         }
 
-        stage('Run Docker Container') {
-            steps {
-                script {
+        stage('Docker container build'){
+            steps{
+                script{
                     // Stop any existing container with the same name
-                    sh "docker stop spotify-app || true && docker rm spotify-app || true"
-                    
-                    // Running the container
-                    sh "docker run -d --name spotify-app -p 5555:5555 $DOCKER_IMAGE"
+                    sh "docker stop snap || true && docker rm snap || true"
+                    // Running the container 
+                    sh "docker container run -d --name snap -p 5555:5555 $DOCKER_IMAGE"
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up workspace...'
-            cleanWs()  // Clean up the workspace after the build
         }
     }
 }
