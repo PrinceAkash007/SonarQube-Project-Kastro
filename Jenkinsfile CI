@@ -56,7 +56,8 @@ pipeline{
         stage('Docker Image build') {
             steps{
                 script{
-                    sh "echo $DOCKER_IMAGE > /home/ubuntu/images/image-tag.txt"
+                    sh "mkdir images"
+                    sh "echo $DOCKER_IMAGE > ./images/image-tag.txt"
                     sh "docker build -t $DOCKER_IMAGE ."
                 }
             }
